@@ -34,7 +34,8 @@ jobs:
         uses: ./.github/actions/test-python-app
         with:
           # TODO: 6. CHANGE THE PATH TO THE PYTHON APP
-          python-app-path: ./services/integrity-checker
+          python-app-path: .
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image to GitHub
         id: build-and-push-docker-image-to-github
