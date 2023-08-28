@@ -1,0 +1,91 @@
+# Documentation: https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsuses
+# TODO: 1. CHANGE THE NAME AND THE RUN NAME
+name: integrity-checker_workflow
+run-name: integrity-checker workflow
+
+# Allow one concurrent deployment
+concurrency:
+  # TODO: 2. CHANGE THE GROUP NAME
+  group: "integrity-checker"
+  cancel-in-progress: true
+
+on:
+  push:
+    paths:
+      - .github/actions/build-and-push-docker-image-to-github/action.yml
+      - .github/actions/execute-command-on-kubernetes-cluster/action.yml
+      - .github/actions/test-python-app/action.yml
+      # TODO: 3. CHANGE THE WORKFLOW NAME
+      - .github/workflows/integrity-checker.yml
+      # TODO: 4. CHANGE THE PATH TO THE PYTHON APP
+      - services/integrity-checker/**/*
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  run-workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v3
+
+      - name: Test Python app
+        uses: ./.github/actions/test-python-app
+        with:
+          # TODO: 6. CHANGE THE PATH TO THE PYTHON APP
+          python-app-path: ./services/integrity-checker
+
+      - name: Build and push Docker image to GitHub
+        id: build-and-push-docker-image-to-github
+        # Only run on main
+        if: github.ref == 'refs/heads/main'
+        uses: ./.github/actions/build-and-push-docker-image-to-github
+        with:
+          docker-registry-username: ${{ github.actor }}
+          docker-registry-password: ${{ secrets.GITHUB_TOKEN }}
+          # TODO: 7. CHANGE THE DOCKER IMAGE NAME
+          docker-image-name: ${{ github.repository }}-integrity-checker
+          # TODO: 8. CHANGE THE PATH TO THE DOCKER IMAGE CONTEXT
+          docker-image-context: ./services/integrity-checker
+
+      - name: Prepare configuration files with secrets from GitHub Secrets
+        # Only run on main
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        # TODO: 9. CHANGE THE PATH TO THE KUBERNETES CONFIGURATION FILES
+        working-directory: services/integrity-checker/kubernetes
+        env:
+          ENVIRONMENT: production
+          LOG_LEVEL: info
+          # Engine URLs can be added as a list separated by a comma with escaped double quotes
+          ENGINE_URLS: "'[\"https://engine-csia-pme.kube.isc.heia-fr.ch\"]'"
+          # TODO: 10. CHANGE THE URL OF THE SAMPLE SERVICE
+          SERVICE_URL: https://integrity-checker-csia-pme.kube.isc.heia-fr.ch
+        # TODO: 11. CHANGE THE NAME OF THE CONFIGURATION FILES
+        run: |
+          # Set integrity-checker version
+          docker_image_tags=(${{ steps.build-and-push-docker-image-to-github.outputs.docker-image-tags }})
+          docker_image_sha_tag="${docker_image_tags[1]}"
+          yq ".spec.template.spec.containers[0].image = \"$docker_image_sha_tag\"" integrity-checker.stateful.yml > new-integrity-checker.stateful.yml && mv new-integrity-checker.stateful.yml integrity-checker.stateful.yml
+
+          # Set integrity-checker configuration
+          yq '.data = (.data | to_entries | map({"key": .key, "value": "${" + .key + "}"}) | from_entries)' integrity-checker.config-map.yml | envsubst > new-integrity-checker.config-map.yml && mv new-integrity-checker.config-map.yml integrity-checker.config-map.yml
+
+      # TODO: 12. CHANGE THE NAME OF THE ACTION
+      - name: Deploy integrity-checker on the Kubernetes cluster
+        # Only run on main
+        if: github.ref == 'refs/heads/main'
+        uses: ./.github/actions/execute-command-on-kubernetes-cluster
+        with:
+          kube-config: ${{ secrets.KUBE_CONFIG }}
+          kube-namespace: csia-pme-prod
+          # TODO: 13. CHANGE THE KUBERNETES CONTEXT
+          kubectl-context: ./services/integrity-checker/kubernetes
+          # TODO: 14. CHANGE THE PATH TO THE KUBERNETES CONFIGURATION FILES
+          kubectl-args: |
+            apply \
+              -f integrity-checker.config-map.yml \
+              -f integrity-checker.stateful.yml \
+              -f integrity-checker.service.yml \
+              -f integrity-checker.ingress.yml
