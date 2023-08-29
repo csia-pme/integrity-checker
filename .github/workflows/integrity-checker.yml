@@ -41,7 +41,7 @@ jobs:
           # TODO: 7. CHANGE THE DOCKER IMAGE NAME
           docker-image-name: ${{ github.repository }}-integrity-checker
           # TODO: 8. CHANGE THE PATH TO THE DOCKER IMAGE CONTEXT
-          docker-image-context: ./services/integrity-checker
+          docker-image-context: .
 
       - name: Prepare configuration files with secrets from GitHub Secrets
         # Only run on main
@@ -75,7 +75,7 @@ jobs:
           kube-config: ${{ secrets.KUBE_CONFIG }}
           kube-namespace: csia-pme-prod
           # TODO: 13. CHANGE THE KUBERNETES CONTEXT
-          kubectl-context: ./services/integrity-checker/kubernetes
+          kubectl-context: ./kubernetes
           # TODO: 14. CHANGE THE PATH TO THE KUBERNETES CONFIGURATION FILES
           kubectl-args: |
             apply \
