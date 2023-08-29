@@ -20,7 +20,6 @@ on:
 
 jobs:
   release:
-    needs: test
     runs-on: ubuntu-latest
     # Only run on main
     if: success() && github.ref == 'refs/heads/main'
