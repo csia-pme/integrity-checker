@@ -22,7 +22,7 @@ def storage_fixture():
 def client_fixture(reachable_engine_instance: HTTPServer):
     def get_settings_override():
         settings = get_settings()
-        settings.engine_url = reachable_engine_instance.url_for("")
+        settings.engine_urls = [reachable_engine_instance.url_for("")]
         settings.engine_announce_retries = 2
         settings.engine_announce_retry_delay = 1
         settings.max_tasks = 2
@@ -64,7 +64,7 @@ def unreachable_engine_instance_fixture(httpserver: HTTPServer):
 def app_with_reachable_engine_instance(reachable_engine_instance: HTTPServer):
     def get_settings_override():
         settings = get_settings()
-        settings.engine_url = reachable_engine_instance.url_for("")
+        settings.engine_urls = [reachable_engine_instance.url_for("")]
         settings.engine_announce_retries = 2
         settings.engine_announce_retry_delay = 1
         settings.max_tasks = 2
@@ -83,7 +83,7 @@ def app_with_reachable_engine_instance(reachable_engine_instance: HTTPServer):
 def app_with_unreachable_engine_instance(unreachable_engine_instance: HTTPServer):
     def get_settings_override():
         settings = get_settings()
-        settings.engine_url = unreachable_engine_instance.url_for("")
+        settings.engine_urls = [unreachable_engine_instance.url_for("")]
         settings.engine_announce_retries = 2
         settings.engine_announce_retry_delay = 1
         settings.max_tasks = 2
@@ -98,7 +98,9 @@ def app_with_unreachable_engine_instance(unreachable_engine_instance: HTTPServer
     app.dependency_overrides.clear()
 
 
-def test_announce_to_reachable_engine(caplog: pytest.LogCaptureFixture, app_with_reachable_engine_instance):
+def test_announce_to_reachable_engine(
+    caplog: pytest.LogCaptureFixture, app_with_reachable_engine_instance
+):
     with TestClient(app_with_reachable_engine_instance):
         # We wait for the app to announce itself to the engine (ugly)
         time.sleep(5)
@@ -117,7 +119,9 @@ def test_announce_to_reachable_engine(caplog: pytest.LogCaptureFixture, app_with
         assert not warning_logs_found
 
 
-def test_announce_to_unreachable_engine(caplog: pytest.LogCaptureFixture, app_with_unreachable_engine_instance):
+def test_announce_to_unreachable_engine(
+    caplog: pytest.LogCaptureFixture, app_with_unreachable_engine_instance
+):
     with TestClient(app_with_unreachable_engine_instance):
         # We wait for the app to announce itself to the engine (ugly)
         time.sleep(5)
