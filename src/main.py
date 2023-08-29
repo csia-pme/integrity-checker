@@ -128,10 +128,8 @@ class MyService(Service):
         # Apply date inconsistency detection
         if 'date_inconsistency' in config['detection']:
             for col in config['detection']['date_inconsistency']['columns']:
-                desired_format = config['detection']['date_inconsistency'][f'{col}_format'].replace("YYYY",
-                                                                                                    "%Y").replace("MM",
-                                                                                                                  "%m").replace(
-                    "DD", "%d")
+                desired_format = config['detection']['date_inconsistency'][f'{col}_format']\
+                    .replace("YYYY", "%Y").replace("MM", "%m").replace("DD", "%d")
                 mask = ~df[col].apply(lambda x: self.is_valid_date(x, desired_format))
                 issues_df.loc[mask, 'Reason'] += "Date Inconsistency, "
                 issues_df.loc[mask, 'Problematic_Columns'] += col + "; "
@@ -152,12 +150,13 @@ class MyService(Service):
         except ValueError:
             return False
 
+
 api_description = """
 This service checks the integrity of a dataset based on a configuration file, it can detect :
 - duplicates
 - missing values
 - useless strings
-- range errors 
+- range errors
 - date inconsistencies
 """
 api_summary = """
@@ -201,6 +200,7 @@ app.add_middleware(
 @app.get("/", include_in_schema=False)
 async def root():
     return RedirectResponse("/docs", status_code=301)
+
 
 service_service: ServiceService | None = None
 
