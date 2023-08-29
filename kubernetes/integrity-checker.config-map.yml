@@ -9,7 +9,7 @@ metadata:
 data:
   ENVIRONMENT: development
   LOG_LEVEL: debug
-  ENGINE_URL: http://engine-service:8080
+  ENGINE_URLS: '["http://engine-service:8080"]'
   # TODO: 3. CHANGE THE SERVICE URL 
   # (the port must be the same as in the integrity-checker.service.yml and unused by other services)
   SERVICE_URL: http://integrity-checker-service:9999
