@@ -167,7 +167,7 @@ Integrity Checker of a dataset
 app = FastAPI(
     title="Integrity Checker",
     description=api_description,
-    version="0.0.1",
+    version="1.0.0",
     contact={
         "name": "CSIA-PME",
         "url": "https://swiss-ai-center.ch/",
