@@ -25,7 +25,7 @@ spec:
       # TODO: 6. CHANGE THE NAME OF THE CONTAINER
       - name: integrity-checker
         # TODO: 7. CHANGE THE IMAGE NAME
-        image: ghcr.io/csia-pme/csia-pme-integrity-checker:latest
+        image: ghcr.io/swiss-ai-center/integrity-checker:latest
         # If you build the image locally, change the next line to `imagePullPolicy: Never` - there is no need to pull the image
         imagePullPolicy: Always
         ports:

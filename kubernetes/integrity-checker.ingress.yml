@@ -9,7 +9,7 @@ metadata:
 spec:
   rules:
   # TODO: 2. CHANGE THE HOST
-  - host: integrity-checker-csia-pme.kube.isc.heia-fr.ch
+  - host: integrity-checker-swiss-ai-center.kube.isc.heia-fr.ch
     http:
       paths:
       - path: /
@@ -23,4 +23,4 @@ spec:
   tls:
     - hosts:
         # TODO: 4. CHANGE THE HOST
-        - integrity-checker-csia-pme.kube.isc.heia-fr.ch
+        - integrity-checker-swiss-ai-center.kube.isc.heia-fr.ch
