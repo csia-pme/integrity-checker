@@ -56,7 +56,8 @@ class MyService(Service):
                     name=ExecutionUnitTagName.DATA_PREPROCESSING,
                     acronym=ExecutionUnitTagAcronym.DATA_PREPROCESSING,
                 ),
-            ]
+            ],
+            has_ai=True
         )
 
     def process(self, data):
@@ -152,7 +153,7 @@ class MyService(Service):
 
 
 api_description = """
-This service checks the integrity of a dataset based on a configuration file, it can detect :
+This service checks the integrity of a dataset based on a configuration file, it can detect:
 - duplicates
 - missing values
 - useless strings
@@ -160,7 +161,7 @@ This service checks the integrity of a dataset based on a configuration file, it
 - date inconsistencies
 """
 api_summary = """
-Integrity Checker of a dataset
+Integrity Checker for a dataset.
 """
 
 # Define the FastAPI application with information
@@ -171,7 +172,7 @@ app = FastAPI(
     contact={
         "name": "CSIA-PME",
         "url": "https://swiss-ai-center.ch/",
-        "email": "info@swiss-ai-center.ch",
+        "email": "ia.recherche@hes-so.ch",
     },
     swagger_ui_parameters={
         "tagsSorter": "alpha",
