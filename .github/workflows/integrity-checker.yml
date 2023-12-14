@@ -13,8 +13,6 @@ on:
       - main
       - prod
 
-  pull_request:
-
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -28,7 +26,7 @@ jobs:
       - name: Lint Python app
         uses: ./.github/actions/lint-python-app
         with:
-          python-app-path: ./.
+          python-app-path: .
 
   test:
     needs: review
@@ -40,7 +38,7 @@ jobs:
       - name: Test Python app
         uses: ./.github/actions/test-python-app
         with:
-          python-app-path: ./.
+          python-app-path: .
           token: ${{ secrets.GITHUB_TOKEN }}
 
   release:
@@ -59,7 +57,7 @@ jobs:
           docker-registry-username: ${{ github.actor }}
           docker-registry-password: ${{ secrets.GITHUB_TOKEN }}
           docker-image-name: swiss-ai-center/integrity-checker
-          docker-image-context: ./.
+          docker-image-context: .
     outputs:
       docker-image-tags: ${{ steps.build-and-push-docker-image-to-github.outputs.docker-image-tags }}
 
@@ -74,11 +72,11 @@ jobs:
 
       - name: Prepare configuration files
         shell: bash
-        working-directory: kubernetes
+        working-directory: ./kubernetes
         env:
           ENVIRONMENT: production
           LOG_LEVEL: info
-          ENGINE_URLS: "'[\"https://core-engine-swiss-ai-center.kube.isc.heia-fr.ch\"]'"
+          ENGINE_URLS: "'[\"https://backend-core-engine-swiss-ai-center.kube.isc.heia-fr.ch\"]'"
           SERVICE_URL: https://integrity-checker-swiss-ai-center.kube.isc.heia-fr.ch
         run: |
           # Set integrity-checker version
@@ -121,7 +119,7 @@ jobs:
         env:
           ENVIRONMENT: production
           LOG_LEVEL: info
-          ENGINE_URLS: "'[\"https://core-engine-swiss-ai-center.kube.isc.heia-fr.ch\"]'"
+          ENGINE_URLS: "'[\"https://backend-core-engine-swiss-ai-center.kube.isc.heia-fr.ch\"]'"
           SERVICE_URL: https://integrity-checker-swiss-ai-center.kube.isc.heia-fr.ch
         run: |
           # Set integrity-checker version
@@ -141,7 +139,7 @@ jobs:
         with:
           kube-config: ${{ secrets.KUBE_CONFIG_PROD }}
           kube-namespace: swiss-ai-center-prod
-          kubectl-context: ././kubernetes
+          kubectl-context: ./kubernetes
           kubectl-args: |
             apply \
               -f integrity-checker.config-map.yml \
