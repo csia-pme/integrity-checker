@@ -4,7 +4,7 @@ metadata:
   # TODO: 1. CHANGE THE NAME OF THE SERVICE
   name: integrity-checker-service
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   ports:
     - name: http
       # TODO: 2. CHANGE THE PORT (must be the same as in the integrity-checker.config-map.yml)
