@@ -4,9 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from common_code.config import get_settings
-from pydantic import Field
 from common_code.http_client import HttpClient
-from common_code.logger.logger import get_logger
+from common_code.logger.logger import get_logger, Logger
 from common_code.service.controller import router as service_router
 from common_code.service.service import ServiceService
 from common_code.storage.service import StorageService
@@ -17,6 +16,7 @@ from common_code.service.models import Service
 from common_code.service.enums import ServiceStatus
 from common_code.common.enums import FieldDescriptionType, ExecutionUnitTagName, ExecutionUnitTagAcronym
 from common_code.common.models import FieldDescription, ExecutionUnitTag
+from contextlib import asynccontextmanager
 
 # Imports required by the service's model
 import pandas as pd
@@ -33,8 +33,8 @@ class MyService(Service):
     """
 
     # Any additional fields must be excluded for Pydantic to work
-    model: object = Field(exclude=True)
-    logger: object = Field(exclude=True)
+    _model: object
+    _logger: Logger
 
     def __init__(self):
         super().__init__(
@@ -60,7 +60,7 @@ class MyService(Service):
             ],
             has_ai=True
         )
-        self.logger = get_logger(settings)
+        self._logger = get_logger(settings)
 
     def process(self, data):
         # NOTE that the data is a dictionary with the keys being the field names set in the data_in_fields
@@ -131,7 +131,7 @@ class MyService(Service):
         # Apply date inconsistency detection
         if 'date_inconsistency' in config['detection']:
             for col in config['detection']['date_inconsistency']['columns']:
-                desired_format = config['detection']['date_inconsistency'][f'{col}_format']\
+                desired_format = config['detection']['date_inconsistency'][f'{col}_format'] \
                     .replace("YYYY", "%Y").replace("MM", "%m").replace("DD", "%d")
                 mask = ~df[col].apply(lambda x: self.is_valid_date(x, desired_format))
                 issues_df.loc[mask, 'Reason'] += "Date Inconsistency, "
@@ -154,6 +154,54 @@ class MyService(Service):
             return False
 
 
+service_service: ServiceService | None = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Manual instances because startup events doesn't support Dependency Injection
+    # https://github.com/tiangolo/fastapi/issues/2057
+    # https://github.com/tiangolo/fastapi/issues/425
+
+    # Global variable
+    global service_service
+
+    # Startup
+    logger = get_logger(settings)
+    http_client = HttpClient()
+    storage_service = StorageService(logger)
+    my_service = MyService()
+    tasks_service = TasksService(logger, settings, http_client, storage_service)
+    service_service = ServiceService(logger, settings, http_client, tasks_service)
+
+    tasks_service.set_service(my_service)
+
+    # Start the tasks service
+    tasks_service.start()
+
+    async def announce():
+        retries = settings.engine_announce_retries
+        for engine_url in settings.engine_urls:
+            announced = False
+            while not announced and retries > 0:
+                announced = await service_service.announce_service(my_service, engine_url)
+                retries -= 1
+                if not announced:
+                    time.sleep(settings.engine_announce_retry_delay)
+                    if retries == 0:
+                        logger.warning(f"Aborting service announcement after "
+                                       f"{settings.engine_announce_retries} retries")
+
+    # Announce the service to its engine
+    asyncio.ensure_future(announce())
+
+    yield
+
+    # Shutdown
+    for engine_url in settings.engine_urls:
+        await service_service.graceful_shutdown(my_service, engine_url)
+
+
 api_description = """
 This service checks the integrity of a dataset based on a configuration file, it can detect:
 - duplicates
@@ -168,6 +216,7 @@ Integrity Checker for a dataset.
 
 # Define the FastAPI application with information
 app = FastAPI(
+    lifespan=lifespan,
     title="Integrity Checker",
     description=api_description,
     version="1.0.0",
@@ -203,53 +252,3 @@ app.add_middleware(
 @app.get("/", include_in_schema=False)
 async def root():
     return RedirectResponse("/docs", status_code=301)
-
-
-service_service: ServiceService | None = None
-
-
-@app.on_event("startup")
-async def startup_event():
-    # Manual instances because startup events doesn't support Dependency Injection
-    # https://github.com/tiangolo/fastapi/issues/2057
-    # https://github.com/tiangolo/fastapi/issues/425
-
-    # Global variable
-    global service_service
-
-    logger = get_logger(settings)
-    http_client = HttpClient()
-    storage_service = StorageService(logger)
-    my_service = MyService()
-    tasks_service = TasksService(logger, settings, http_client, storage_service)
-    service_service = ServiceService(logger, settings, http_client, tasks_service)
-
-    tasks_service.set_service(my_service)
-
-    # Start the tasks service
-    tasks_service.start()
-
-    async def announce():
-        retries = settings.engine_announce_retries
-        for engine_url in settings.engine_urls:
-            announced = False
-            while not announced and retries > 0:
-                announced = await service_service.announce_service(my_service, engine_url)
-                retries -= 1
-                if not announced:
-                    time.sleep(settings.engine_announce_retry_delay)
-                    if retries == 0:
-                        logger.warning(f"Aborting service announcement after "
-                                       f"{settings.engine_announce_retries} retries")
-
-    # Announce the service to its engine
-    asyncio.ensure_future(announce())
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    # Global variable
-    global service_service
-    my_service = MyService()
-    for engine_url in settings.engine_urls:
-        await service_service.graceful_shutdown(my_service, engine_url)
