@@ -58,7 +58,8 @@ class MyService(Service):
                     acronym=ExecutionUnitTagAcronym.DATA_PREPROCESSING,
                 ),
             ],
-            has_ai=True
+            has_ai=True,
+            docs_url="https://docs.swiss-ai-center.ch/reference/services/integrity-checker/",
         )
         self._logger = get_logger(settings)
 
